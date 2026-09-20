@@ -401,7 +401,7 @@ function setupEnquiryForm() {
 
   if (!form || !status) return;
 
-  form.addEventListener("submit", event => {
+  form.addEventListener("submit", async event => {
     event.preventDefault();
     status.hidden = true;
 
@@ -415,6 +415,83 @@ function setupEnquiryForm() {
       return;
     }
 
+    const dateInput = document.getElementById("preferred-date");
+    const chosenDate = form.elements.date.value;
+
+    if (chosenDate && chosenDate < dateInput.min) {
+      status.textContent =
+        "Please choose today or a future date.";
+
+      status.hidden = false;
+      return;
+    }
+
+    const formData = new FormData(form);
+
+    const name = formData.get("name") || "";
+    const phone = formData.get("phone") || "";
+    const email = formData.get("email") || "";
+    const service = formData.get("service") || "";
+    const date = formData.get("date") || "";
+    const message = formData.get("message") || "";
+
+    status.textContent = "Opening WhatsApp…";
+    status.hidden = false;
+
+    const { data, error } = await db
+      .from("salons")
+      .select("whatsapp")
+      .eq("salon_code", SALON_CODE)
+      .single();
+
+    if (error || !data || !data.whatsapp) {
+      console.error("Could not load salon WhatsApp:", error);
+
+      status.textContent =
+        "WhatsApp is not configured yet. Please contact the salon directly.";
+
+      status.hidden = false;
+      return;
+    }
+
+    let whatsappNumber = data.whatsapp
+      .replace(/^https?:\/\/(www\.)?wa\.me\//i, "")
+      .replace(/\D/g, "");
+
+    if (!whatsappNumber) {
+      status.textContent =
+        "The salon WhatsApp number is not configured correctly.";
+
+      status.hidden = false;
+      return;
+    }
+
+    const whatsappMessage =
+      "New Appointment Enquiry\n\n" +
+      "Name: " + name + "\n" +
+      "Phone: " + phone + "\n" +
+      "Email: " + (email || "Not provided") + "\n" +
+      "Service: " + service + "\n" +
+      "Preferred Date: " + date + "\n" +
+      "Message: " + (message || "Not provided");
+
+    const whatsappUrl =
+      "https://wa.me/" +
+      whatsappNumber +
+      "?text=" +
+      encodeURIComponent(whatsappMessage);
+
+    window.open(whatsappUrl, "_blank", "noopener");
+
+    form.reset();
+    setupDateMinimum();
+
+    status.textContent =
+      "Your enquiry is ready to send on WhatsApp.";
+
+    status.hidden = false;
+  });
+}
     const dateInput = document.getElementById("preferred-date");
     const chosenDate = form.elements.date.value;
 
