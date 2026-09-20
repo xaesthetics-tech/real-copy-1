@@ -632,6 +632,43 @@ async function loadSalonInformation() {
   }
 }
 /* -------------------------------
+   LOAD HERO + ABOUT IMAGE
+   FROM SUPABASE
+-------------------------------- */
+
+async function loadHeroAboutImage() {
+  const { data, error } = await db
+    .from("site_settings")
+    .select("setting_value")
+    .eq("salon_code", SALON_CODE)
+    .eq("setting_key", "hero_about_image")
+    .maybeSingle();
+
+  if (error) {
+    console.error("Could not load Hero/About image:", error);
+    return;
+  }
+
+  const imageUrl = data?.setting_value?.trim();
+
+  // Keep the existing CSS image if no custom image is configured.
+  if (!imageUrl) return;
+
+  // Update Hero background image.
+  const heroImage = document.querySelector(".hero-image");
+
+  if (heroImage) {
+    heroImage.style.backgroundImage = `url("${imageUrl}")`;
+  }
+
+  // Update About section image.
+  const aboutImage = document.querySelector(".about-photo img");
+
+  if (aboutImage) {
+    aboutImage.src = imageUrl;
+  }
+}
+/* -------------------------------
    LOAD SERVICES FROM SUPABASE
 -------------------------------- */
 
@@ -753,6 +790,7 @@ document.addEventListener("DOMContentLoaded", () => {
    testSupabaseConnection();
    loadSalonName();
    loadSalonInformation();
+   loadHeroAboutImage();
    loadServicesFromSupabase();
    loadGalleryFromSupabase();
 
