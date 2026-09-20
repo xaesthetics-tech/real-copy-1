@@ -623,11 +623,61 @@ async function loadServicesFromSupabase() {
   renderServiceMenu();
   populateServiceSelect();
 }
+/* -------------------------------
+   LOAD GALLERY FROM SUPABASE
+-------------------------------- */
+
+async function loadGalleryFromSupabase() {
+  const container = document.querySelector(".gallery-grid");
+  if (!container) return;
+
+  const { data, error } = await db
+    .from("gallery_images")
+    .select(`
+      image_url,
+      caption,
+      display_order
+    `)
+    .eq("salon_code", SALON_CODE)
+    .order("display_order", { ascending: true });
+
+  if (error || !data) {
+    console.error("Could not load gallery:", error);
+    return;
+  }
+
+  const layouts = [
+    "tall",
+    "",
+    "",
+    "wide",
+    "",
+    "tall",
+    "",
+    "",
+    ""
+  ];
+
+  container.innerHTML = data.map((item, index) => `
+    <figure class="gallery-item ${layouts[index] || ""}">
+      <img
+        loading="lazy"
+        src="${item.image_url}"
+        alt="${item.caption || "Beauty gallery image"}"
+      >
+      <figcaption>
+        <span>${String(index + 1).padStart(2, "0")} / APSARA BEAUTY</span>
+        <b>${item.caption || ""}</b>
+      </figcaption>
+    </figure>
+  `).join("");
+}
 document.addEventListener("DOMContentLoaded", () => {
    testSupabaseConnection();
    loadSalonName();
    loadSalonInformation();
    loadServicesFromSupabase();
+   loadGalleryFromSupabase();
 
   setupNavigation();
   setupCounters();
