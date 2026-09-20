@@ -554,14 +554,80 @@ async function loadSalonInformation() {
     about.textContent = data.about_text;
   }
 }
+/* -------------------------------
+   LOAD SERVICES FROM SUPABASE
+-------------------------------- */
+
+async function loadServicesFromSupabase() {
+  const { data, error } = await db
+    .from("services")
+    .select(`
+      category,
+      name,
+      description,
+      price,
+      image_url,
+      display_order
+    `)
+    .eq("salon_code", SALON_CODE)
+    .order("display_order", { ascending: true });
+
+  if (error || !data) {
+    console.error("Could not load services:", error);
+    return;
+  }
+
+  const categories = {};
+
+  data.forEach(service => {
+    if (!categories[service.category]) {
+      categories[service.category] = {
+        name: service.category,
+        description: "",
+        startingPrice: "Price on request",
+        image: service.image_url || "",
+        subcategories: []
+      };
+    }
+
+    const category = categories[service.category];
+
+    if (!category.image && service.image_url) {
+      category.image = service.image_url;
+    }
+
+    category.subcategories.push({
+      name: service.name,
+      price: service.price || "Price on request"
+    });
+
+    if (!category.description && service.description) {
+      category.description = service.description;
+    }
+  });
+
+  SERVICE_DATA.length = 0;
+
+  Object.values(categories).forEach((category, index) => {
+    SERVICE_DATA.push({
+      number: String(index + 1).padStart(2, "0"),
+      name: category.name,
+      description: category.description,
+      startingPrice: category.startingPrice,
+      image: category.image,
+      subcategories: category.subcategories
+    });
+  });
+
+  renderHomeCards();
+  renderServiceMenu();
+  populateServiceSelect();
+}
 document.addEventListener("DOMContentLoaded", () => {
    testSupabaseConnection();
    loadSalonName();
    loadSalonInformation();
-   
-  renderHomeCards();
-  renderServiceMenu();
-  populateServiceSelect();
+   loadServicesFromSupabase();
 
   setupNavigation();
   setupCounters();
